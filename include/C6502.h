@@ -75,8 +75,8 @@ struct m6502_State
  */
 struct m6502_State* m6502_create_state(struct m6502_Bus* bus);
 void m6502_trigger_clock(struct m6502_State*);
-// void m6502_interrupt(struct m6502_State*);
-// void m6502_non_maskable_interrupt(struct m6502_State*);
+void m6502_trigger_irq(struct m6502_State*);
+void m6502_trigger_nmi(struct m6502_State*);
 void m6502_free_state(struct m6502_State*);
 
 #endif
