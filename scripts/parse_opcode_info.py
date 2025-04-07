@@ -21,7 +21,18 @@ class OpcodeInfo(TypedDict):
 
 # уровень вложенности здесь некрасивый, но этот скрипт
 # писался быстро. Прошу прощения
-def parse_opcode_info(html: str) -> list[OpcodeInfo]:
+def _parse_opcode_info(html: str) -> list[OpcodeInfo]:
+    """
+    Парсит закешированную страницу (может использоваться только для
+    определенной страницы в интернете, не универсален) и возвращает
+    структурированный словарь с информацией
+
+    :html: страница html в виде простой строки. Может быть получена
+           прямым запросом к серверу или обращением к кешированной
+           версии в репозитории
+    :return: стркутурированный словарь с информацией об опкодах
+             из таблицы
+    """
     result: list[OpcodeInfo] = list()
     soup = BeautifulSoup(html, "html.parser")
     opcodes = soup.find("dl", class_="opcodes")
@@ -45,13 +56,18 @@ def parse_opcode_info(html: str) -> list[OpcodeInfo]:
                         comment=summary
                         )
                     )
-    print(*result[:4], sep='\n')
     return result
 
-def main() -> None:
+def get_opcodes_info() -> list[OpcodeInfo]:
+    """
+    Обращается к закешированной в репозитории версии страницы
+    https://www.masswerk.at/6502/6502_instruction_set.html. Извлекает
+    из нее информацию об опкодах и возвращает список
+    структурированных словарей
+    """
     with open(os.path.join(SCRIPT_DIR, "cached.html")) as f:
         html = f.read()
-    parse_opcode_info(html)
+    return _parse_opcode_info(html)
 
 if __name__ == "__main__":
-    main()
+    print(*get_opcodes_info(), sep='\n')
