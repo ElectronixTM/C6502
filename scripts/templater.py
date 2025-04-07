@@ -19,7 +19,6 @@ import argparse
 OPCODES = parse_opcode_info.get_opcodes_info()
 
 def _substitute_match(template_text: str, match: re.Match) -> str:
-    print(match.group(1))
     substitution = ''.join([match.group(1) % opcode for opcode in OPCODES])
     lhs = template_text[:match.start()]
     rhs = template_text[match.end():]
