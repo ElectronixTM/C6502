@@ -36,7 +36,7 @@ def _process_template(template_text: str) -> str:
     return template_text
 
 def _remove_comments(text: str) -> str:
-    return re.sub(r"\/\*TEMPLATE COMMENT.*\*\/", "", text, flags=re.DOTALL)
+    return re.sub(r"\/\*TEMPLATE COMMENT.*?\*\/", "", text, flags=re.DOTALL)
 
 def main() -> None:
     argparser = argparse.ArgumentParser(
