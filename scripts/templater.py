@@ -19,7 +19,12 @@ import argparse
 OPCODES = parse_opcode_info.get_opcodes_info()
 
 def _substitute_match(template_text: str, match: re.Match) -> str:
-    substitution = ''.join([match.group(1) % opcode for opcode in OPCODES])
+    # восстанавливаем escape последовательности
+    string = (match.group(1)
+              .encode("raw_unicode_escape")
+              .decode("unicode_escape")
+              )
+    substitution = ''.join([string % opcode for opcode in OPCODES])
     lhs = template_text[:match.start()]
     rhs = template_text[match.end():]
     return lhs + substitution + rhs
