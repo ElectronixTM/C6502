@@ -35,6 +35,9 @@ def _process_template(template_text: str) -> str:
         template_text = _substitute_match(template_text, match)
     return template_text
 
+def _remove_comments(text: str) -> str:
+    return re.sub(r"\/\*TEMPLATE COMMENT.*\*\/", "", text, flags=re.DOTALL)
+
 def main() -> None:
     argparser = argparse.ArgumentParser(
             prog="templater",
@@ -54,6 +57,7 @@ def main() -> None:
     with open(args.template, 'r', encoding="utf-8") as f:
         text = f.read()
     try:
+        text = _remove_comments(text)
         text = _process_template(text)
     except:
         print("Error accured while processing template. "
