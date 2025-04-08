@@ -13,7 +13,6 @@
 #define M6502_OPCODES_H
 
 #include <stdint.h>
-#include <string.h>
 
 /**
  * Все возможные режимы адрессации микроконтроллера MOS 6502
@@ -45,7 +44,7 @@ enum m6502_OpCode{
  * адрессации операндов, длине команды целиком, количество
  * циклов, необходимых для исполнения
  */
-struct m6502_OpcodeDesc
+struct m6502_OpCodeDesc
 {
   m6502_OpCode opcode; /** код операции из списка известрных эмулятору.
                            Остальные опкоды не эмулируются и фактически
@@ -55,5 +54,7 @@ struct m6502_OpcodeDesc
                               выполнения инструкции*/
   m6502_AddressingModes addressmode; /** режим адресации инструкции*/
 };
+
+const struct m6502_OpcodeDesc* m6502_fetch_opcode_desc(uint_8t);
 
 #endif

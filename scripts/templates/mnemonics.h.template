@@ -1,0 +1,13 @@
+#ifndef M6502_MNEMONICS_H
+#define M6502_MNEMONICS_H
+
+/**
+ * Этот файл генерируется при помощи скриптов в папке scripts
+ */
+
+enum m6502_Mnemonic
+{
+{{UNIQUE_MNEMONICS}}
+};
+
+#endif
