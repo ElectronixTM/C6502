@@ -43,7 +43,7 @@ def _reformat_addressing(addressing: str) -> str:
     return result
 
 def main() -> None:
-    with open(os.path.join(SCRIPT_DIR, "templates", "opcodes.c.template"), encoding="utf8") as f:
+    with open(os.path.join(SCRIPT_DIR, "templates", "m6502_opcodes.c.template"), encoding="utf8") as f:
         text = f.read()
     opcodes = get_opcodes_info()
     # change addressing format

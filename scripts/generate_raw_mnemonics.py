@@ -13,7 +13,7 @@ import re
 
 def main() -> None:
     with open(
-            os.path.join(SCRIPT_DIR, "templates", "mnemonics.h.template"),
+            os.path.join(SCRIPT_DIR, "templates", "m6502_mnemonics.h.template"),
             encoding="utf-8"
             ) as f:
         text = f.read()
