@@ -13,7 +13,7 @@ import re
 
 def main() -> None:
     with open(
-            os.path.join(SCRIPT_DIR, "templates", "raw_opcodes.h.template"),
+            os.path.join(SCRIPT_DIR, "templates", "m6502_mnemonics.h.template"),
             encoding="utf-8"
             ) as f:
         text = f.read()
@@ -33,7 +33,7 @@ def main() -> None:
         lambda s: f"  {PREFIX}{s}",
         unique_mnemonics
         ))
-    substitution = '\n'.join(formated_mnemonics)
+    substitution = ',\n'.join(formated_mnemonics)
     with open(
             os.path.join(SCRIPT_DIR, "..", "C6502", "m6502_mnemonics.h"),
             "w",
