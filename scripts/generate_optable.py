@@ -11,6 +11,8 @@
 """
 
 from parse_opcode_info import get_opcodes_info, SCRIPT_DIR
+import re
+import os
 
 OPCODE_TABLE_SIZE = 16*16
 NOP_OPCODE = 234
@@ -41,6 +43,8 @@ def _reformat_addressing(addressing: str) -> str:
     return result
 
 def main() -> None:
+    with open(os.path.join(SCRIPT_DIR, "templates", "opcodes.c.template"), encoding="utf8") as f:
+        text = f.read()
     opcodes = get_opcodes_info()
     # change addressing format
     for info in opcodes:
@@ -55,7 +59,11 @@ def main() -> None:
         opcode_desc = opcode_to_desc[i]
         cell = TEMPLATE % opcode_desc
         cells.append(cell)
-    print(*cells, sep='\n')
+    formatted_cells = list(map(lambda s: "  " + s, cells))
+    processed = re.sub(r"{{OPCODES_TABLE}}" , ",\n".join(formatted_cells), text)
+    with open(os.path.join(SCRIPT_DIR, "..", "C6502", "m6502_opcodes.c"), 'w', encoding="utf8") as f:
+        f.write(processed)
+
 
 if __name__=="__main__":
     main()
