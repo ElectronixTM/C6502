@@ -5,6 +5,9 @@
 #include <C6502.h>
 
 
+/**
+ * Тип возвращаемого из обработчика адрессации значения
+ */
 enum m6502_AddressingRes_type
 {
   RESULT_DATA, /**< 8-битные данные в качестве опернада */
@@ -34,6 +37,5 @@ struct m6502_Operands{
  * к шине за исключением случая косвенной адресации
  */
 typedef struct m6502_Operands(*ADDRESSING_HANDLER)(M6502_HANDLE);
-
 
 #endif
