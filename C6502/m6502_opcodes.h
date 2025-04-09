@@ -31,14 +31,14 @@ enum m6502_AddressingModes
  */
 struct m6502_OpCodeDesc
 {
-  enum m6502_Mnemonic mnemonic; /** код операции из списка известрных эмулятору.
+  enum m6502_Mnemonic mnemonic; /**< код операции из списка известрных эмулятору.
                                     Остальные опкоды не эмулируются и фактически
                                     становятся NOP'ами */
   uint8_t instrsize; /**< размер инструкции вместе с опкодом и операндами */
-  uint8_t minrequiredcycles; /** Минимальное количество сигналов clock,
+  uint8_t minrequiredcycles; /**< Минимальное количество сигналов clock,
                                  необходимых для выполнения инструкции 
                                  некоторые виды адрессации добавляют такты */
-  enum m6502_AddressingModes addressmode; /** режим адресации инструкции */
+  enum m6502_AddressingModes addressmode; /**< режим адресации инструкции */
 };
 
 /**
