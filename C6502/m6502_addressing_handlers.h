@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <C6502.h>
+#include "m6502_opcodes.h"
 
 
 /**
@@ -37,5 +38,11 @@ struct m6502_Operands{
  * к шине за исключением случая косвенной адресации
  */
 typedef struct m6502_Operands(*ADDRESSING_HANDLER)(M6502_HANDLE);
+
+/**
+ * Функция, принимающая опкод и возвращающая обработчик для соответствующего
+ * режима адрессации
+ */
+ADDRESSING_HANDLER get_addressing_handler(enum m6502_AddressingModes);
 
 #endif
