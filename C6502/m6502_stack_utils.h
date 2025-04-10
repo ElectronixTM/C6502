@@ -21,4 +21,10 @@ void m6502_push(M6502_HANDLE, uint8_t data);
  */
 uint8_t m6502_pull(M6502_HANDLE);
 
+/**
+ * Кладет 16-битное число на стек в little endian варианте - сначала кладет
+ * старшую часть слова, а затем младшую
+ */
+void m6502_push_addr(M6502_HANDLE, uint16_t addr);
+
 #endif

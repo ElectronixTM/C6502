@@ -54,6 +54,8 @@ void m6502_trigger_clock(M6502_HANDLE handle)
 #define M6502_IRQ_LB 0xFFFA
 #define M6502_IRQ_HB 0xFFFB
 
+
+
 void m6502_trigger_irq(M6502_HANDLE handle)
 {
   // Если прерывания отключены
@@ -62,10 +64,7 @@ void m6502_trigger_irq(M6502_HANDLE handle)
     return;
   }
   // PC
-  uint8_t high_byte = M6502_GET_HB(handle->state.sp);
-  m6502_push(handle, high_byte);
-  uint8_t low_byte = M6502_GET_LB(handle->state.sp);
-  m6502_push(handle, low_byte);
+  m6502_push_addr(handle, handle->state.pc);
   // SR
   m6502_push(handle, handle->state.sr);
 
