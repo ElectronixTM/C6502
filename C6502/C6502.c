@@ -1,6 +1,7 @@
 #include <malloc.h>
 #include <C6502.h>
 #include "m6502_chip_instance.h"
+#include "m6502_opcode_handlers.h"
 
 M6502_HANDLE m6502_get_handle(M6502_BUS_ATTACH bus_attach,
                               M6502_BUS_DETACH bus_detach,
@@ -27,3 +28,23 @@ void m6502_free_handle(M6502_HANDLE handle)
   free(handle);
 }
 
+void m6502_trigger_clock(M6502_HANDLE handle)
+{
+  if (handle->cycles_remaining > 0)
+  {
+    handle->cycles_remaining--;
+    return;
+  }
+
+  uint8_t opcode = handle->bus.read(
+      handle->bus.handle,
+      handle->state.pc
+      );
+
+  const struct m6502_OpCodeDesc* desc = m6502_fetch_opcode_desc(opcode);
+  // задаем предварительное необходимое число тактов на инструкцию.
+  // В дальнейшем это число может увеличиться
+  handle->cycles_remaining = desc->minrequiredcycles;
+  OPCODE_HANDLER opcode_handler = m6502_get_opcode_handler(desc->mnemonic);
+  opcode_handler(handle, desc);
+}
