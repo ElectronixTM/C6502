@@ -51,26 +51,57 @@ void m6502_trigger_clock(M6502_HANDLE handle)
   opcode_handler(handle, desc);
 }
 
-#define M6502_IRQ_LB 0xFFFA
-#define M6502_IRQ_HB 0xFFFB
+/**
+ * Функция кладет на стек текущий pc и sr
+ */
+void _prepare_to_interrupt(M6502_HANDLE handle)
+{
+  // push PC
+  m6502_push_addr(handle, handle->state.pc);
+  // push SR
+  m6502_push(handle, handle->state.sr);
+}
 
+/**
+ * Функция чтения адреса из памяти в формате little endian
+ */
+uint16_t _read_addr_from_bus(M6502_HANDLE handle, uint16_t addr)
+{
 
+  uint8_t lb = handle->bus.read(handle->bus.handle, addr);
+  uint8_t hb = handle->bus.read(handle->bus.handle, addr+1);
+  return M6502_PACK_2_BYTES(lb, hb);
+}
+
+#define M6502_IRQ_HANDLER_ADDR 0xFFFA
 
 void m6502_trigger_irq(M6502_HANDLE handle)
 {
+  // Если еще не закончили с предыдущей командой
+  if (handle->cycles_remaining > 0)
+  {
+    return;
+  }
   // Если прерывания отключены
   if (handle->state.sr & M6502_I)
   {
     return;
   }
-  // PC
-  m6502_push_addr(handle, handle->state.pc);
-  // SR
-  m6502_push(handle, handle->state.sr);
+  _prepare_to_interrupt(handle);
 
   // читаем адрес обработчика прерывания
-  uint8_t irq_handler_lb = handle->bus.read(handle->bus.handle, M6502_IRQ_LB);
-  uint8_t irq_handler_hb = handle->bus.read(handle->bus.handle, M6502_IRQ_HB);
   // записываем прочитанный адрес в pc
-  handle->state.pc = M6502_PACK_2_BYTES(irq_handler_lb, irq_handler_hb);
+  handle->state.pc = _read_addr_from_bus(handle, M6502_IRQ_HANDLER_ADDR);
+}
+
+#define M6502_NMI_HANDLER_ADDR 0xFFFE
+
+void m6502_trigger_nmi(M6502_HANDLE handle)
+{
+  if (handle->cycles_remaining > 0)
+  {
+    return;
+  }
+  _prepare_to_interrupt(handle);
+  handle->state.pc = _read_addr_from_bus(handle, M6502_NMI_HANDLER_ADDR);
 }
