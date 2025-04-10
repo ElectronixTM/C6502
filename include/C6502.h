@@ -135,4 +135,10 @@ void m6502_trigger_irq(M6502_HANDLE);
  */
 void m6502_trigger_nmi(M6502_HANDLE);
 
+/**
+ * Функция вызова reset на микроконтроллере. Сбросит состояние всех
+ * регистров и перекинет на обработчик прерывания reset в памяти
+ */
+void m6502_trigger_reset(M6502_HANDLE);
+
 #endif

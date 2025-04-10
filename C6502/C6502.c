@@ -105,3 +105,20 @@ void m6502_trigger_nmi(M6502_HANDLE handle)
   _prepare_to_interrupt(handle);
   handle->state.pc = _read_addr_from_bus(handle, M6502_NMI_HANDLER_ADDR);
 }
+
+// количество тактов, которое консоль тратит
+// на то, чтобы запуститься и записать в pc
+// нужный адрес
+#define M6502_INIT_CYCLES_AMOUNT 7
+
+// адрес, по которому перейдет pc, когда
+// выполнится инициализация микроконтроллера
+#define M6502_RESET_HANDLER_ADDR 0xFFFC
+
+void m6502_trigger_reset(M6502_HANDLE handle)
+{
+  handle->cycles_remaining = 7;
+  struct m6502_State null_state = {0,};
+  handle->state = null_state;
+  handle->state.pc = _read_addr_from_bus(handle, M6502_RESET_HANDLER_ADDR);
+}
