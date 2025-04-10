@@ -52,10 +52,6 @@ typedef struct m6502_Operands(*ADDRESSING_HANDLER)(M6502_HANDLE,
                                                    uint8_t* extra_cycles
                                                    );
 
-/**
- * Упаковывает 2 байта в одно 16-битное слово
- */
-#define M6502_PACK_2_BYTES(lhs, rhs) ((rhs) << 8 + lhs)
 
 /**
  * Функция, принимающая опкод и возвращающая обработчик для соответствующего
