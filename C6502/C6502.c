@@ -21,3 +21,9 @@ M6502_HANDLE m6502_get_handle(M6502_BUS_ATTACH bus_attach,
   return m6502_handle;
 }
 
+void m6502_free_handle(M6502_HANDLE handle)
+{
+  handle->bus.detach(handle);
+  free(handle);
+}
+
