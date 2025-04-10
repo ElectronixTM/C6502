@@ -2,6 +2,8 @@
 #include <C6502.h>
 #include "m6502_chip_instance.h"
 #include "m6502_opcode_handlers.h"
+#include "m6502_stack_utils.h"
+#include "m6502_byte_tweaks.h"
 
 M6502_HANDLE m6502_get_handle(M6502_BUS_ATTACH bus_attach,
                               M6502_BUS_DETACH bus_detach,
@@ -47,4 +49,29 @@ void m6502_trigger_clock(M6502_HANDLE handle)
   handle->cycles_remaining = desc->minrequiredcycles;
   OPCODE_HANDLER opcode_handler = m6502_get_opcode_handler(desc->mnemonic);
   opcode_handler(handle, desc);
+}
+
+#define M6502_IRQ_LB 0xFFFA
+#define M6502_IRQ_HB 0xFFFB
+
+void m6502_trigger_irq(M6502_HANDLE handle)
+{
+  // Если прерывания отключены
+  if (handle->state.sr & M6502_I)
+  {
+    return;
+  }
+  // PC
+  uint8_t high_byte = M6502_GET_HB(handle->state.sp);
+  m6502_push(handle, high_byte);
+  uint8_t low_byte = M6502_GET_LB(handle->state.sp);
+  m6502_push(handle, low_byte);
+  // SR
+  m6502_push(handle, handle->state.sr);
+
+  // читаем адрес обработчика прерывания
+  uint8_t irq_handler_lb = handle->bus.read(handle->bus.handle, M6502_IRQ_LB);
+  uint8_t irq_handler_hb = handle->bus.read(handle->bus.handle, M6502_IRQ_HB);
+  // записываем прочитанный адрес в pc
+  handle->state.pc = M6502_PACK_2_BYTES(irq_handler_lb, irq_handler_hb);
 }
