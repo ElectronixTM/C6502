@@ -57,6 +57,6 @@ typedef struct m6502_Operands(*ADDRESSING_HANDLER)(M6502_HANDLE,
  * Функция, принимающая опкод и возвращающая обработчик для соответствующего
  * режима адрессации
  */
-ADDRESSING_HANDLER get_addressing_handler(enum m6502_AddressingModes);
+ADDRESSING_HANDLER m6502_get_addressing_handler(enum m6502_AddressingModes);
 
 #endif
