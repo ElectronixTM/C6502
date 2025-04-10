@@ -24,6 +24,6 @@ typedef int (*OPCODE_HANDLER)(M6502_HANDLE, const struct m6502_OpCodeDesc*);
 /**
  * Возвращает обработчик опкода по его мнемонике
  */
-OPCODE_HANDLER m6502_get_handler(enum m6502_Mnemonic);
+OPCODE_HANDLER m6502_get_opcode_handler(enum m6502_Mnemonic);
 
 #endif
