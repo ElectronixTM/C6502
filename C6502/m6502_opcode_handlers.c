@@ -114,11 +114,20 @@ struct ParsedData _parse_data(const M6502_HANDLE handle,
     return M6502_ERR;                                                      \
   }
 
-
+/**
+ * Прибавляет операнд к аккумулятору вместе с флагом переноса
+ */
 int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a += parsed.data + M6502_GET_C(handle->state.sr);
+  return M6502_OK;
+}
+
+int handle_AND(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  ARIPHMETIC_PREAMBLE(handle, desc, parsed);
+  handle->state.a &= parsed.data;
   return M6502_OK;
 }
 
@@ -137,6 +146,7 @@ OPCODE_HANDLER m6502_get_opcode_handler(enum m6502_Mnemonic mnemonic)
   {
     ADD_HANDLER(ADC);
     ADD_HANDLER(NOP);
+    ADD_HANDLER(AND);
     default:
       return handle_NOP;
   }
