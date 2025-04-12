@@ -21,9 +21,39 @@ RawOperands get_raw_operands(M6502_HANDLE handle, uint8_t instrsize)
   RawOperands operands;
   for (uint8_t i = 0; i < instrsize-1; i++)
   {
-    operands.bytes[i] = read_byte(handle, handle->state.pc + i + 1); 
+    operands.bytes[i] = read_byte(handle, handle->state.pc + i + 1);
   }
   return operands;
+}
+
+/**
+ * Функция, получающая данные для арифметической операции.
+ * Будет стараться получить их из непосредственного операнда или
+ * из памяти. Если операнд implied, выйдет с ненулевым статус-кодом
+ */
+int _ariphmetic_get_data(const M6502_HANDLE handle,
+                         const struct m6502_Operands* operands,
+                         uint8_t* accumulator)
+{
+
+  uint16_t real_addr;
+  switch(operands->type)
+  {
+    case RESULT_DATA:
+      *accumulator = operands->content.data;
+      break;
+    case RESULT_ADDR:
+      *accumulator = handle->bus.read(handle->bus.handle,
+                                      operands->content.address);
+      break;
+    case RESULT_IND:
+      real_addr = read_word(handle, operands->content.address);
+      *accumulator = read_byte(handle, real_addr);
+      break;
+    case RESULT_IMPL:
+      return M6502_ERR;
+  }
+  return 0;
 }
 
 int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
@@ -45,22 +75,8 @@ int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
       &extra_cycles
       );
   uint8_t data;
-  uint16_t real_addr;
-  switch(operands.type)
-  {
-    case RESULT_DATA:
-      data = operands.content.data;
-      break;
-    case RESULT_ADDR:
-      data = handle->bus.read(handle->bus.handle, operands.content.address);
-      break;
-    case RESULT_IND:
-      real_addr = read_word(handle, operands.content.address);
-      data = read_byte(handle, real_addr);
-      break;
-    case RESULT_IMPL:
-      return M6502_ERR;
-  }
+  int ret_code = _ariphmetic_get_data(handle, &operands, &data);
+  handle->state.a += data + M6502_GET_C(handle->state.sr);
   return M6502_OK;
 }
 
