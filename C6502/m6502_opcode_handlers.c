@@ -56,6 +56,35 @@ int _ariphmetic_get_data(const M6502_HANDLE handle,
   return 0;
 }
 
+
+// Структура, нужная только для одной фунции - хранит и
+// информацию о выбраных операндах и дополнительные такты
+struct ExtendedOperands
+{
+  struct m6502_Operands operands;
+  uint8_t extra_cycles;
+};
+
+/**
+ * Выполняет выборку операндов через обработчик адресации, но не выполняет
+ * обращений к шине для их разрешения
+ */
+struct ExtendedOperands _get_unresolved_operands(
+    const M6502_HANDLE handle,
+    const struct m6502_OpCodeDesc* desc
+    )
+{
+  ADDRESSING_HANDLER addressing_handler = m6502_get_addressing_handler(desc->addressmode);
+  uint8_t extra_cycles;
+  struct m6502_Operands operands = addressing_handler(
+      handle,
+      get_raw_operands(handle, desc->instrsize).word,
+      &extra_cycles
+      );
+  struct ExtendedOperands result = {operands, extra_cycles};
+  return result;
+}
+
 int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining);
@@ -79,21 +108,17 @@ struct ParsedData
 
 /**
  * Производит выборку операндов из памяти и возвращает их в структуре вместе
- * с кодом возврата и дополнительными циклами, потраченными функцией адресации
+ * с кодом возврата и дополнительными циклами, потраченными функцией адресации.
+ * Функция годится для тех случаев, когда операнд в виде числа получить нужно
+ * в любом случае
  */
 struct ParsedData _parse_data(const M6502_HANDLE handle,
                                const struct m6502_OpCodeDesc* desc)
 {
-  ADDRESSING_HANDLER addressing_handler = m6502_get_addressing_handler(desc->addressmode);
-  uint8_t extra_cycles;
-  struct m6502_Operands operands = addressing_handler(
-      handle,
-      get_raw_operands(handle, desc->instrsize).word,
-      &extra_cycles
-      );
+  struct ExtendedOperands operands = _get_unresolved_operands(handle, desc);
   uint8_t data;
-  int ret_code = _ariphmetic_get_data(handle, &operands, &data);
-  struct ParsedData result = {data, extra_cycles, 0};
+  int ret_code = _ariphmetic_get_data(handle, &(operands.operands), &data);
+  struct ParsedData result = {data, operands.extra_cycles, 0};
   if (ret_code != M6502_OK)
   {
     result.return_code = M6502_ERR;
@@ -121,6 +146,17 @@ int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a += parsed.data + M6502_GET_C(handle->state.sr);
+  handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  return M6502_OK;
+}
+
+/**
+ * Вычитает операнд из аккумулятора с учетом флага переноса
+ */
+int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  ARIPHMETIC_PREAMBLE(handle, desc, parsed);
+  handle->state.a = handle->state.a + ~parsed.data + M6502_GET_C(handle->state.sr);
   return M6502_OK;
 }
 
@@ -128,6 +164,7 @@ int handle_AND(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a &= parsed.data;
+  handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
 
