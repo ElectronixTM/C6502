@@ -157,6 +157,35 @@ int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a = handle->state.a + ~parsed.data + M6502_GET_C(handle->state.sr);
+  handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  return M6502_OK;
+}
+
+int handle_INY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  handle->state.y++;
+  handle->cycles_remaining = desc->minrequiredcycles;
+  return M6502_OK;
+}
+
+int handle_DEY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  handle->state.y--;
+  handle->cycles_remaining = desc->minrequiredcycles;
+  return M6502_OK;
+}
+
+int handle_INX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  handle->state.x++;
+  handle->cycles_remaining = desc->minrequiredcycles;
+  return M6502_OK;
+}
+
+int handle_DEX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  handle->state.x--;
+  handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
 }
 
@@ -182,6 +211,11 @@ OPCODE_HANDLER m6502_get_opcode_handler(enum m6502_Mnemonic mnemonic)
   switch(mnemonic)
   {
     ADD_HANDLER(ADC);
+    ADD_HANDLER(SBC);
+    ADD_HANDLER(INX);
+    ADD_HANDLER(DEX);
+    ADD_HANDLER(INY);
+    ADD_HANDLER(DEY);
     ADD_HANDLER(NOP);
     ADD_HANDLER(AND);
     default:
