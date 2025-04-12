@@ -197,6 +197,22 @@ int handle_AND(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   return M6502_OK;
 }
 
+int handle_ORA(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  ARIPHMETIC_PREAMBLE(handle, desc, parsed);
+  handle->state.a |= parsed.data;
+  handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  return M6502_OK;
+}
+
+int handle_EOR(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  ARIPHMETIC_PREAMBLE(handle, desc, parsed);
+  handle->state.a ^= parsed.data;
+  handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  return M6502_OK;
+}
+
 // Макрос, генерирующий очередной выход функции по названию мнемоники.
 // Работает в предположении, что каждая мнемоника обрабатывается фунцией
 // handle_(mnemonic_name), e.g. handle_ADC, handle_LDA, ...
@@ -218,6 +234,8 @@ OPCODE_HANDLER m6502_get_opcode_handler(enum m6502_Mnemonic mnemonic)
     ADD_HANDLER(DEY);
     ADD_HANDLER(NOP);
     ADD_HANDLER(AND);
+    ADD_HANDLER(ORA);
+    ADD_HANDLER(EOR);
     default:
       return handle_NOP;
   }
