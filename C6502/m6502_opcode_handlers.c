@@ -52,10 +52,13 @@ int _ariphmetic_get_data(const M6502_HANDLE handle,
       real_addr = read_word(handle, operands->content.address);
       *accumulator = read_byte(handle, real_addr);
       break;
+    case RESULT_A:
+      *accumulator = handle->state.a;
+      break;
     case RESULT_IMPL:
       return M6502_ERR;
   }
-  return 0;
+  return M6502_OK;
 }
 
 
@@ -85,14 +88,6 @@ struct ExtendedOperands _get_unresolved_operands(
       );
   struct ExtendedOperands result = {operands, extra_cycles};
   return result;
-}
-
-int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
-{
-  SKIP_UNTIL_ZERO(handle->cycles_remaining);
-  handle->state.pc += desc->instrsize;
-  handle->cycles_remaining = desc->minrequiredcycles;
-  return 0;
 }
 
 /**
@@ -141,6 +136,15 @@ struct ParsedData _parse_data(const M6502_HANDLE handle,
     return M6502_ERR;                                                      \
   }
 
+int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  SKIP_UNTIL_ZERO(handle->cycles_remaining);
+  handle->state.pc += desc->instrsize;
+  handle->cycles_remaining = desc->minrequiredcycles;
+  return 0;
+}
+
+
 /**
  * Прибавляет операнд к аккумулятору вместе с флагом переноса
  */
@@ -165,6 +169,7 @@ int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 
 int handle_INY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.y++;
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
@@ -172,6 +177,7 @@ int handle_INY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 
 int handle_DEY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.y--;
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
@@ -179,6 +185,7 @@ int handle_DEY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 
 int handle_INX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.x++;
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
@@ -186,6 +193,7 @@ int handle_INX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 
 int handle_DEX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.x--;
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
@@ -212,6 +220,31 @@ int handle_EOR(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a ^= parsed.data;
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  return M6502_OK;
+}
+
+int handle_ASL(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+{
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)
+  if (desc->addressmode == AM_A)
+  {
+    uint8_t data = handle->state.a;
+    handle->state.a = data << 1;
+    return M6502_OK;
+  }
+  struct ExtendedOperands unresop = _get_unresolved_operands(handle, desc);
+  // согласно спецификации инструкция может обрабатывать только абсолютные адреса
+  // или zeropage. Поэтому любой другой вид адресации должен вызывать ошибку
+  if (unresop.operands.type != RESULT_ADDR)
+  {
+    return M6502_ERR;
+  }
+  uint8_t data = read_byte(handle, unresop.operands.content.address);
+  uint8_t shifted = data << 1;
+  // Согласно спецификации микроконтроллер запишет в ячейку памяти
+  // сначала исходное число, а уже потом измененное
+  write_byte(handle, unresop.operands.content.address, data);
+  write_byte(handle, unresop.operands.content.address, shifted);
   return M6502_OK;
 }
 
