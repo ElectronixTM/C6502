@@ -3,6 +3,8 @@
 #include "m6502_addressing_handlers.h"
 #include "m6502_memory_utils.h"
 
+//TODO: Добавить обработку флагов в команды
+
 #define SKIP_UNTIL_ZERO(n)\
   if ((n) > 0)            \
   {                       \
