@@ -173,7 +173,7 @@ int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.sr &= ~(M6502_C | M6502_Z | M6502_N | M6502_V);
   // определяем carry flag
   uint8_t old_c_flag = M6502_GET_C(handle->state.sr);
-  if (0xff - parsed.data - old_c_flag < handle->state.a)
+  if (UINT8_MAX - parsed.data - old_c_flag < handle->state.a)
   {
     handle->state.sr |= M6502_C;
   }
@@ -199,12 +199,13 @@ int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.sr &= ~(M6502_C | M6502_Z | M6502_N | M6502_V);
   uint8_t old_c_flag = M6502_GET_C(handle->state.sr);
   // NOTE: Не до конца уверен, что это работает корректно
-  if (handle->state.a > 255 - ~parsed.data - old_c_flag)
+  if (handle->state.a < INT8_MIN + parsed.data + ~(old_c_flag))
   {
     handle->state.sr |= M6502_C;
   }
   uint8_t result = handle->state.a + ~parsed.data + old_c_flag;
   _set_z_n(handle, result);
+  // Формула из спецификации. Определяем переполнение
   if ((result^handle->state.a)&(result^~parsed.data)&0x80)
   {
     handle->state.sr |= M6502_V;
