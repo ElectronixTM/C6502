@@ -21,7 +21,7 @@ typedef union
 RawOperands get_raw_operands(M6502_HANDLE handle, uint8_t instrsize)
 {
   RawOperands operands;
-  for (uint8_t i = 0; i < instrsize-1; i++)
+  for (uint8_t i = 0; (i < instrsize-1) && (i < 2); i++)
   {
     operands.bytes[i] = read_byte(handle, handle->state.pc + i + 1);
   }
@@ -223,30 +223,79 @@ int handle_EOR(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   return M6502_OK;
 }
 
-int handle_ASL(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
+// В микроконтроллере есть особенность, что иногда он вместо
+// одной записи в память выполняет 2 - записывает старое значение
+// памяти, а затем на его место сразу новое
+void _read_modify_write(M6502_HANDLE handle, uint16_t addr,
+                        uint8_t original, uint8_t new)
 {
-  SKIP_UNTIL_ZERO(handle->cycles_remaining)
-  if (desc->addressmode == AM_A)
-  {
-    uint8_t data = handle->state.a;
-    handle->state.a = data << 1;
-    return M6502_OK;
-  }
-  struct ExtendedOperands unresop = _get_unresolved_operands(handle, desc);
-  // согласно спецификации инструкция может обрабатывать только абсолютные адреса
-  // или zeropage. Поэтому любой другой вид адресации должен вызывать ошибку
-  if (unresop.operands.type != RESULT_ADDR)
-  {
-    return M6502_ERR;
-  }
-  uint8_t data = read_byte(handle, unresop.operands.content.address);
-  uint8_t shifted = data << 1;
-  // Согласно спецификации микроконтроллер запишет в ячейку памяти
-  // сначала исходное число, а уже потом измененное
-  write_byte(handle, unresop.operands.content.address, data);
-  write_byte(handle, unresop.operands.content.address, shifted);
-  return M6502_OK;
+  write_byte(handle, addr, original);
+  write_byte(handle, addr, new);
 }
+
+// Я правда не горжусь этим шаблоном, но поскольку я не хочу один и тот же код
+// дублировать 4 раза с минимальными изменениями, я выбираю страдания при
+// отладке, но одну точку изменений, чем копипасту
+#define IMPLEMENT_SHIFT_HANDLER(mnem, func)\
+int handle_##mnem(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)   \
+{                                                                             \
+  SKIP_UNTIL_ZERO(handle->cycles_remaining)                                   \
+  if (desc->addressmode == AM_A)                                              \
+  {                                                                           \
+    handle->state.a = (func)(handle, handle->state.a);                        \
+    return M6502_OK;                                                          \
+  }                                                                           \
+  struct ExtendedOperands unresop = _get_unresolved_operands(handle, desc);   \
+  /* согласно спецификации инструкция может обрабатывать только абсолютные */ \
+  /* адреса или zeropage. Поэтому любой другой вид адресации должен        */ \
+  /* вызывать ошибку                                                       */ \
+  if (unresop.operands.type != RESULT_ADDR)                                   \
+  {                                                                           \
+    return M6502_ERR;                                                         \
+  }                                                                           \
+  uint8_t data = read_byte(handle, unresop.operands.content.address);         \
+  uint8_t result = (func)(handle, data);                                      \
+  /* Согласно спецификации микроконтроллер запишет в ячейку памяти */         \
+  /* сначала исходное число, а уже потом измененное                */         \
+  _read_modify_write(handle, unresop.operands.content.address, data, result); \
+  return M6502_OK;                                                            \
+}                                                                             \
+
+uint8_t _perform_ASL(M6502_HANDLE handle, uint8_t data)
+{
+  return data << 1;
+}
+
+IMPLEMENT_SHIFT_HANDLER(ASL, _perform_ASL);
+
+uint8_t _perform_LSR(M6502_HANDLE handle, uint8_t data)
+{
+  return data >> 1;
+}
+
+IMPLEMENT_SHIFT_HANDLER(LSR, _perform_LSR);
+
+uint8_t _perform_ROL(M6502_HANDLE handle, uint8_t data)
+{
+  uint8_t sr = handle->state.sr;
+  uint8_t old_c_flag = M6502_GET_C(sr);
+  // Обновляем флаг carry
+  handle->state.sr = (sr&(~M6502_C)) | (M6502_C*((data&0x80)>>7));
+  return (data << 1) + old_c_flag;
+}
+
+IMPLEMENT_SHIFT_HANDLER(ROL, _perform_ROL);
+
+uint8_t _perform_ROR(M6502_HANDLE handle, uint8_t data)
+{
+  uint8_t sr = handle->state.sr;
+  uint8_t old_c_flag = M6502_GET_C(sr);
+  // Обновляем флаг carry
+  handle->state.sr = (sr&(~M6502_C)) | (M6502_C*(data&0x01));
+  return (data >> 1) + (old_c_flag << 7);
+}
+
+IMPLEMENT_SHIFT_HANDLER(ROR, _perform_ROR);
 
 // Макрос, генерирующий очередной выход функции по названию мнемоники.
 // Работает в предположении, что каждая мнемоника обрабатывается фунцией
@@ -271,6 +320,10 @@ OPCODE_HANDLER m6502_get_opcode_handler(enum m6502_Mnemonic mnemonic)
     ADD_HANDLER(AND);
     ADD_HANDLER(ORA);
     ADD_HANDLER(EOR);
+    ADD_HANDLER(ASL);
+    ADD_HANDLER(LSR);
+    ADD_HANDLER(ROL);
+    ADD_HANDLER(ROR);
     default:
       return handle_NOP;
   }
