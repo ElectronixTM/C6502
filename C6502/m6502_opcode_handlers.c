@@ -144,6 +144,24 @@ int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   return 0;
 }
 
+/**
+ * Функция, устанавливающая флаги zero и negative
+ * по переданному в нее числу. Есть надежда, что
+ * функция будет заинлайнена
+ */
+void _set_z_n(M6502_HANDLE handle, uint8_t result)
+{
+  // Сбрасываем значения флагов
+  handle->state.sr &= ~(M6502_Z | M6502_N);
+  if (result == 0)
+  {
+    handle->state.sr |= M6502_Z;
+  }
+  if (result&0x80)
+  {
+    handle->state.sr |= M6502_N;
+  }
+}
 
 /**
  * Прибавляет операнд к аккумулятору вместе с флагом переноса
@@ -151,7 +169,23 @@ int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
-  handle->state.a += parsed.data + M6502_GET_C(handle->state.sr);
+  // Сбросим все флаги, которые меняются
+  handle->state.sr &= ~(M6502_C | M6502_Z | M6502_N | M6502_V);
+  // определяем carry flag
+  uint8_t old_c_flag = M6502_GET_C(handle->state.sr);
+  if (0xff - parsed.data - old_c_flag < handle->state.a)
+  {
+    handle->state.sr |= M6502_C;
+  }
+
+  uint8_t result = handle->state.a + parsed.data + old_c_flag;
+  _set_z_n(handle, handle->state.a);
+  // Проверяем переполнение. Берется уравнение из спецификации
+  if ((result^handle->state.a)&(result^parsed.data)&0x80)
+  {
+    handle->state.sr |= M6502_V;
+  }
+  handle->state.a = result;
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
@@ -162,7 +196,9 @@ int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
+  handle->state.sr &= ~(M6502_C | M6502_Z | M6502_N | M6502_V);
   handle->state.a = handle->state.a + ~parsed.data + M6502_GET_C(handle->state.sr);
+  _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
