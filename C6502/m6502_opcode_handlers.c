@@ -313,8 +313,9 @@ int handle_##mnem(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)   \
   /* Согласно спецификации микроконтроллер запишет в ячейку памяти */         \
   /* сначала исходное число, а уже потом измененное                */         \
   _read_modify_write(handle, unresop.operands.content.address, data, result); \
+  handle->cycles_remaining = desc->minrequiredcycles + unresop.extra_cycles;  \
   return M6502_OK;                                                            \
-}                                                                             \
+}                                                                             
 
 uint8_t _perform_ASL(M6502_HANDLE handle, uint8_t data)
 {
