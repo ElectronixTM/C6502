@@ -123,6 +123,8 @@ struct ParsedData _parse_data(const M6502_HANDLE handle,
   return result;
 }
 
+#define INCREMENT_PC(handle, desc) ((handle)->state.pc += (desc)->instrsize);
+
 // Очень некрасивая прембула, которая выполняет набор необходимых действий
 // для выполнения почти любой арифметической операции в эмуляторе:
 // Подсчитывает такты до начала выполнения операции, парсит операнды функции
@@ -139,9 +141,9 @@ struct ParsedData _parse_data(const M6502_HANDLE handle,
 int handle_NOP(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining);
-  handle->state.pc += desc->instrsize;
   handle->cycles_remaining = desc->minrequiredcycles;
-  return 0;
+  INCREMENT_PC(handle, desc);
+  return M6502_OK;
 }
 
 /**
@@ -187,6 +189,7 @@ int handle_ADC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   }
   handle->state.a = result;
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -212,6 +215,7 @@ int handle_SBC(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   }
   handle->state.a = result;
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -221,6 +225,7 @@ int handle_INY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.y++;
   _set_z_n(handle, handle->state.y);
   handle->cycles_remaining = desc->minrequiredcycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -230,6 +235,7 @@ int handle_DEY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.y--;
   _set_z_n(handle, handle->state.y);
   handle->cycles_remaining = desc->minrequiredcycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -239,6 +245,7 @@ int handle_INX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.x++;
   _set_z_n(handle, handle->state.x);
   handle->cycles_remaining = desc->minrequiredcycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -248,6 +255,7 @@ int handle_DEX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.x--;
   _set_z_n(handle, handle->state.x);
   handle->cycles_remaining = desc->minrequiredcycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -257,6 +265,7 @@ int handle_AND(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.a &= parsed.data;
   _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -266,6 +275,7 @@ int handle_ORA(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.a |= parsed.data;
   _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -275,6 +285,7 @@ int handle_EOR(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
   handle->state.a ^= parsed.data;
   _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
+  INCREMENT_PC(handle, desc);
   return M6502_OK;
 }
 
@@ -314,6 +325,7 @@ int handle_##mnem(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)   \
   /* сначала исходное число, а уже потом измененное                */         \
   _read_modify_write(handle, unresop.operands.content.address, data, result); \
   handle->cycles_remaining = desc->minrequiredcycles + unresop.extra_cycles;  \
+  INCREMENT_PC(handle, desc);                                                 \
   return M6502_OK;                                                            \
 }                                                                             
 
