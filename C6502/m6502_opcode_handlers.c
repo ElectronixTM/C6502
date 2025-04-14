@@ -219,6 +219,7 @@ int handle_INY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.y++;
+  _set_z_n(handle, handle->state.y);
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
 }
@@ -227,6 +228,7 @@ int handle_DEY(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.y--;
+  _set_z_n(handle, handle->state.y);
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
 }
@@ -235,6 +237,7 @@ int handle_INX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.x++;
+  _set_z_n(handle, handle->state.x);
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
 }
@@ -243,6 +246,7 @@ int handle_DEX(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   SKIP_UNTIL_ZERO(handle->cycles_remaining)
   handle->state.x--;
+  _set_z_n(handle, handle->state.x);
   handle->cycles_remaining = desc->minrequiredcycles;
   return M6502_OK;
 }
@@ -251,6 +255,7 @@ int handle_AND(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a &= parsed.data;
+  _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
@@ -259,6 +264,7 @@ int handle_ORA(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a |= parsed.data;
+  _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
@@ -267,6 +273,7 @@ int handle_EOR(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)
 {
   ARIPHMETIC_PREAMBLE(handle, desc, parsed);
   handle->state.a ^= parsed.data;
+  _set_z_n(handle, handle->state.a);
   handle->cycles_remaining = desc->minrequiredcycles + parsed.extra_cycles;
   return M6502_OK;
 }
@@ -311,14 +318,29 @@ int handle_##mnem(M6502_HANDLE handle, const struct m6502_OpCodeDesc* desc)   \
 
 uint8_t _perform_ASL(M6502_HANDLE handle, uint8_t data)
 {
-  return data << 1;
+  // сбросить флаг carry
+  handle->state.sr &= ~M6502_C;
+  if (data&0x80)
+  {
+    handle->state.sr |= M6502_C;
+  }
+  uint8_t result = data << 1;
+  _set_z_n(handle, result);
+  return result;
 }
 
 IMPLEMENT_SHIFT_HANDLER(ASL, _perform_ASL);
 
 uint8_t _perform_LSR(M6502_HANDLE handle, uint8_t data)
 {
-  return data >> 1;
+  handle->state.sr &= ~M6502_C;
+  if (data&0x1)
+  {
+    handle->state.sr |= M6502_C;
+  }
+  uint8_t result = data >> 1;
+  _set_z_n(handle, result);
+  return result;
 }
 
 IMPLEMENT_SHIFT_HANDLER(LSR, _perform_LSR);
